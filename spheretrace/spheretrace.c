@@ -3,13 +3,6 @@
 /*
 	MATHS.
 */
-/*
-	Solve a quadratic equation x^2 + px + q = 0.
-
-	If your equation is of form ax + bx + c, just divide
-	p and q with a: find_quadratic_zeros(p / a, q / a),
-	as long as a isn't zero of course.
-*/
 quadratic_zeros find_quadratic_zeros(float p, float q)
 {
 	float phalf = p / 2.0f;
