@@ -4,6 +4,21 @@
 #include "stdint.h"
 #include "stdio.h"
 #include "stdlib.h"
+#include "math.h"
+
+/*
+	MATHS.
+*/
+typedef struct quadratic_zeros_t
+{
+	float s1;
+	float s2;
+	/*
+		Number of real solutions.
+	*/
+	int real_count;
+} quadratic_zeros;
+quadratic_zeros find_quadratic_zeros(float p, float q);
 
 /*
 	VECTORS.

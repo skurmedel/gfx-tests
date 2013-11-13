@@ -1,6 +1,49 @@
 #include "spheretrace.h"
 
 /*
+	MATHS.
+*/
+/*
+	Solve a quadratic equation x^2 + px + q = 0.
+
+	If your equation is of form ax + bx + c, just divide
+	p and q with a: find_quadratic_zeros(p / a, q / a),
+	as long as a isn't zero of course.
+*/
+quadratic_zeros find_quadratic_zeros(float p, float q)
+{
+	float phalf = p / 2.0f;
+	/* Midpoint for equation. */
+	float mid = -(phalf);
+	float discriminant = (phalf * phalf) - q;
+
+	quadratic_zeros s;
+	if (discriminant < 0.0f)
+		s.real_count = 0;
+	else if (discriminant == 0.0f)
+		s.real_count = 1;
+	else
+		s.real_count = 2;
+
+	if (s.real_count < 1)
+	{
+		s.s1 = NAN;
+		s.s2 = NAN;	
+	}
+	else
+	{
+		s.s1 = mid + sqrt(discriminant);
+		if (s.real_count > 1)
+			s.s2 = mid - sqrt(discriminant);
+		else
+			s.s2 = s.s1;	
+	}	
+
+	return s;
+}
+
+
+/*
 	VECTOR METHODS.
 */
 vec3 mkvec3(float a, float b, float c)
@@ -159,6 +202,9 @@ void tga_write(tga_data *data, FILE *f)
 int main(int argc, char *argv[])
 {
 	printf("Hello my dear! You supplied %d arguments.\n", argc);
+
+	quadratic_zeros qz = find_quadratic_zeros(4, -21);
+	printf("Solution for x^2 + 4x - 21 = 0, %d solutions, %f and %f.\n", qz.real_count, qz.s1, qz.s2);
 
 	return 0;
 }
