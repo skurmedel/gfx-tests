@@ -22,6 +22,24 @@ vec3 vec3_scale(vec3 a, float s);
 typedef vec3 rgb;
 
 /*
+	RAYS.
+*/
+typedef struct ray_t
+{
+	vec3 origin;
+	/*
+		The direction of the ray.
+	*/
+	vec3 dir;
+} ray;
+
+ray mkray(vec3 origin, vec3 dir);
+/*
+	Return a point p along the ray, where p=origin if t=0.
+*/
+vec3 ray_point(ray r, float t);
+
+/*
 	TGA STUFF.
 */
 typedef struct tga_data_s

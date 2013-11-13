@@ -46,6 +46,26 @@ vec3 vec3_scale(vec3 a, float s)
 }
 
 /*
+	RAYS.
+*/
+ray mkray(vec3 origin, vec3 dir)
+{
+	ray r;
+	r.origin = origin;
+	r.dir = dir;
+	return r;
+}
+
+/*
+	Return a point p along the ray, where p=origin if t=0.
+*/
+vec3 ray_point(ray r, float t)
+{
+	vec3 d = vec3_scale(r.dir, t);
+	return vec3_add(r.origin, d);
+}
+
+/*
 	TGA METHODS.
 */
 uint64_t tga_len(uint16_t w, uint16_t h, uint8_t bitdepth)
