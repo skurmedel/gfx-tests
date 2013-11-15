@@ -284,7 +284,7 @@ int main(int argc, char *argv[])
 
 			if (ray_intersects_sphere(r, s, &tst))
 			{
-				puts(".");
+				putc('.', stdout);
 				ray_hits++;
 
 				/*
