@@ -43,6 +43,7 @@ float vec3_len2(vec3 a);
 float vec3_len(vec3 a);
 #define vec3_mag(x) vec3_len(x)
 vec3 vec3_scale(vec3 a, float s);
+vec3 vec3_norm(vec3 a);
 
 typedef vec3 rgb;
 

@@ -83,6 +83,13 @@ vec3 vec3_scale(vec3 a, float s)
 	return v;
 }
 
+vec3 vec3_norm(vec3 a)
+{
+	float l = vec3_len(a);
+	float fraction = 1.0f / l;
+	return vec3_scale(a, fraction);
+}
+
 /*
 	RAYS.
 */
@@ -90,7 +97,7 @@ ray mkray(vec3 origin, vec3 dir)
 {
 	ray r;
 	r.origin = origin;
-	r.dir = dir;
+	r.dir = vec3_norm(dir);
 	return r;
 }
 
@@ -105,7 +112,28 @@ vec3 ray_point(ray r, float t)
 
 int ray_intersects_sphere(ray r, sphere_primitive s, ray_sphere_test *rst)
 {
+	vec3 l = vec3_norm(r.dir); /* l . l = ||l||^2 = 1*1 = 1 now */
+	vec3 o_min_c = vec3_sub(r.origin, s.center);
+	float o_min_c_sqr = vec3_dot(o_min_c, o_min_c);
 
+	float p = 2.0f * vec3_dot(l, o_min_c);
+	float q = o_min_c_sqr - (s.radius * s.radius);
+
+	quadratic_zeros zeros = find_quadratic_zeros(p, q);
+
+	rst->hits = zeros.real_count;
+	if (rst->hits > 0)
+	{
+		rst->p1 = ray_point(r, zeros.s1);
+		rst->n1 = vec3_norm(vec3_sub(rst->p1, s.center));
+		if (rst->hits > 1)
+		{
+			rst->p2 = ray_point(r, zeros.s2);
+			rst->n2 = vec3_norm(vec3_sub(rst->p2, s.center));
+		}
+	}
+
+	return rst->hits;
 }
 
 /*
@@ -203,8 +231,26 @@ int main(int argc, char *argv[])
 {
 	printf("Hello my dear! You supplied %d arguments.\n", argc);
 
-	quadratic_zeros qz = find_quadratic_zeros(4, -21);
-	printf("Solution for x^2 + 4x - 21 = 0, %d solutions, %f and %f.\n", qz.real_count, qz.s1, qz.s2);
+	sphere_primitive s;
+	s.radius = 0.50f;
+	s.center = mkvec3(0, 0, 0);
+
+	ray r = mkray(mkvec3(5.0f, 0, 0), mkvec3(-1, 0, 0));
+
+	ray_sphere_test test;
+	if (ray_intersects_sphere(r, s, &test) < 1)
+	{
+		printf("No intersections reported.\n");
+	}
+	else
+	{
+		printf("%d intersections, at %f %f %f and %f %f %f.\n", 
+			test.hits, test.p1.x, test.p1.y, test.p1.z, test.p2.x, test.p2.y, test.p2.z);
+		printf("hit normals: %f %f %f and %f %f %f.\n",
+			test.n1.x, test.n1.y, test.n1.z, test.n2.x, test.n2.y, test.n2.z);
+	}
+
+
 
 	return 0;
 }
