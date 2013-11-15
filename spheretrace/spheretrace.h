@@ -89,6 +89,12 @@ typedef struct ray_sphere_test_t
 	/* Sphere normals at p1 and p2. */
 	vec3 n1;
 	vec3 n2;
+	/* Closest points with regards to the origin,
+	   these just point to p1 and p2, but is sorted
+	   so that cp1 is always the closest intersection
+	   to the origin. */
+	vec3 *cp1;
+	vec3 *cp2;
 	
 	short hits;
 

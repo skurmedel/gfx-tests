@@ -131,6 +131,17 @@ int ray_intersects_sphere(ray r, sphere_primitive s, ray_sphere_test *rst)
 			rst->p2 = ray_point(r, zeros.s2);
 			rst->n2 = vec3_norm(vec3_sub(rst->p2, s.center));
 		}
+
+		if (zeros.s1 <= zeros.s2)
+		{
+			rst->cp1 = &rst->p1;
+			rst->cp2 = &rst->p2;
+		}
+		else
+		{
+			rst->cp1 = &rst->p2;
+			rst->cp2 = &rst->p1;
+		}
 	}
 
 	return rst->hits;
@@ -245,7 +256,7 @@ int main(int argc, char *argv[])
 	else
 	{
 		printf("%d intersections, at %f %f %f and %f %f %f.\n", 
-			test.hits, test.p1.x, test.p1.y, test.p1.z, test.p2.x, test.p2.y, test.p2.z);
+			test.hits, test.cp1->x, test.cp1->y, test.cp1->z, test.cp2->x, test.cp2->y, test.cp2->z);
 		printf("hit normals: %f %f %f and %f %f %f.\n",
 			test.n1.x, test.n1.y, test.n1.z, test.n2.x, test.n2.y, test.n2.z);
 	}
