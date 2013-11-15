@@ -251,6 +251,7 @@ int main(int argc, char *argv[])
 	vec3 camera_origin = mkvec3(0, 0, 5.0f);
 	float imgplane_w = 4.0;
 	int res = 128;
+
 	vec3 topleft = vec3_add(mkvec3(-imgplane_w / 2.0f, imgplane_w / 2.0f, 0), camera_origin);
 	vec3 pshiftx = mkvec3((imgplane_w / (float)res), 0, 0);
 	vec3 pshifty = mkvec3(0, -(imgplane_w / (float)res), 0);
@@ -258,6 +259,11 @@ int main(int argc, char *argv[])
 	printf("Image Res: %dx%d. Image Plane Width: %f. Pixel Shift X: %f %f %f.\n", res, res, imgplane_w, pshiftx.x, pshiftx.y, pshiftx.z);
 
 	tga_data *tga = tga_create(res, res, 24);
+	if (tga == NULL)
+	{
+		puts("Could not create TGA Buffer... I'm outta here.");
+		return 1;
+	}
 
 	int ray_count = 0, ray_hits = 0;
 	for (int y = 0; y < res; ++y)
@@ -298,6 +304,13 @@ int main(int argc, char *argv[])
 	}
 
 	FILE *f = fopen("render.128x128x24b.tga", "wb+");
+	if (f == NULL)
+	{
+		puts("Couldn't open output file. I can't work with this. Quitting.");
+		tga_free(tga);
+		return 2;
+	}
+
 	tga_write(tga, f);
 
 	tga_free(tga);
