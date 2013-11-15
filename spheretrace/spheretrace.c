@@ -135,12 +135,12 @@ int ray_intersects_sphere(ray r, sphere_primitive s, ray_sphere_test *rst)
 		if (zeros.s1 <= zeros.s2)
 		{
 			rst->cp1 = &rst->p1;
-			rst->cp2 = &rst->p2;
+			rst->cn1 = &rst->n1;
 		}
 		else
 		{
 			rst->cp1 = &rst->p2;
-			rst->cp2 = &rst->p1;
+			rst->cn1 = &rst->n2;
 		}
 	}
 
@@ -243,25 +243,66 @@ int main(int argc, char *argv[])
 	printf("Hello my dear! You supplied %d arguments.\n", argc);
 
 	sphere_primitive s;
-	s.radius = 0.50f;
+	s.radius = 1.5f;
 	s.center = mkvec3(0, 0, 0);
 
-	ray r = mkray(mkvec3(5.0f, 0, 0), mkvec3(-1, 0, 0));
+	vec3 light_pos = mkvec3(.707f, .707f, .707f);
 
-	ray_sphere_test test;
-	if (ray_intersects_sphere(r, s, &test) < 1)
+	vec3 camera_origin = mkvec3(0, 0, 5.0f);
+	float imgplane_w = 4.0;
+	int res = 128;
+	vec3 topleft = vec3_add(mkvec3(-imgplane_w / 2.0f, imgplane_w / 2.0f, 0), camera_origin);
+	vec3 pshiftx = mkvec3((imgplane_w / (float)res), 0, 0);
+	vec3 pshifty = mkvec3(0, -(imgplane_w / (float)res), 0);
+
+	printf("Image Res: %dx%d. Image Plane Width: %f. Pixel Shift X: %f %f %f.\n", res, res, imgplane_w, pshiftx.x, pshiftx.y, pshiftx.z);
+
+	tga_data *tga = tga_create(res, res, 24);
+
+	int ray_count = 0, ray_hits = 0;
+	for (int y = 0; y < res; ++y)
 	{
-		printf("No intersections reported.\n");
-	}
-	else
-	{
-		printf("%d intersections, at %f %f %f and %f %f %f.\n", 
-			test.hits, test.cp1->x, test.cp1->y, test.cp1->z, test.cp2->x, test.cp2->y, test.cp2->z);
-		printf("hit normals: %f %f %f and %f %f %f.\n",
-			test.n1.x, test.n1.y, test.n1.z, test.n2.x, test.n2.y, test.n2.z);
+		for (int x = 0; x < res; ++x)
+		{
+			vec3 ray_origin = vec3_add(vec3_add(topleft, vec3_scale(pshiftx, x)), vec3_scale(pshifty, y));
+			ray r = mkray(ray_origin, mkvec3(0.0f, 0.0f, -1.0f));
+
+			/*printf("Shooting ray from %f %f %f.\n", r.origin.x, r.origin.y, r.origin.z);*/
+
+			ray_sphere_test tst;
+
+			int stride = x + (y * tga->height);
+			tga->data[stride * 3 + 0] = 0;
+			tga->data[stride * 3 + 1] = 0;
+			tga->data[stride * 3 + 2] = 0;
+
+			if (ray_intersects_sphere(r, s, &tst))
+			{
+				puts(".");
+				ray_hits++;
+
+				/*
+					Yeah... this is our shader... :)
+				*/
+				float lambert = fmaxf(vec3_dot(vec3_norm(light_pos), *tst.cn1), 0);
+
+				tga->data[stride * 3 + 0] = (char)(lambert * 255.9); /* set blue. */
+			}
+			else
+			{
+				tga->data[stride * 3 + 2] = (char)(0.2f * 255.9); /* set faint red. */	
+			}
+
+			ray_count++;
+		}
 	}
 
+	FILE *f = fopen("render.128x128x24b.tga", "wb+");
+	tga_write(tga, f);
 
+	tga_free(tga);
+
+	printf("\n%07d rays shot, %07d hits.\n", ray_count, ray_hits);
 
 	return 0;
 }
