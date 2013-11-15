@@ -11,19 +11,15 @@ quadratic_zeros find_quadratic_zeros(float p, float q)
 	float discriminant = (phalf * phalf) - q;
 
 	quadratic_zeros s;
-	if (discriminant < 0.0f)
-		s.real_count = 0;
-	else if (discriminant == 0.0f)
+	s.real_count = 0;
+	if (discriminant == 0.0f)
 		s.real_count = 1;
-	else
+	else if (discriminant > 0.0f)
 		s.real_count = 2;
 
-	if (s.real_count < 1)
-	{
-		s.s1 = NAN;
-		s.s2 = NAN;	
-	}
-	else
+	s.s1 = NAN;
+	s.s2 = NAN;	
+	if (s.real_count > 0)
 	{
 		s.s1 = mid + sqrt(discriminant);
 		if (s.real_count > 1)
@@ -63,13 +59,19 @@ vec3 vec3_sub(vec3 a, vec3 b)
 	return v;
 }
 
-vec3 vec3_dot(vec3 a, vec3 b)
+float vec3_dot(vec3 a, vec3 b)
 {
-	vec3 v;
-	v.x = a.x * b.x;
-	v.y = a.y * b.y;
-	v.z = a.z * b.z;
-	return v;
+	return a.x * b.x + a.y * b.y + a.z * b.z;
+}
+
+float vec3_len2(vec3 a)
+{
+	return vec3_dot(a, a);
+}
+
+float vec3_len(vec3 a)
+{
+	return sqrt(vec3_len2(a));
 }
 
 vec3 vec3_scale(vec3 a, float s)
@@ -99,6 +101,11 @@ vec3 ray_point(ray r, float t)
 {
 	vec3 d = vec3_scale(r.dir, t);
 	return vec3_add(r.origin, d);
+}
+
+int ray_intersects_sphere(ray r, sphere_primitive s, ray_sphere_test *rst)
+{
+
 }
 
 /*
