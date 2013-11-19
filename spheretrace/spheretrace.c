@@ -118,6 +118,24 @@ rgb rgb_mult(rgb a, rgb b)
 	return v;
 }
 
+rgb rgb_gamma(rgb a, float g)
+{
+	rgb ga;
+	ga.x = powf(a.x, g);
+	ga.y = powf(a.y, g);
+	ga.z = powf(a.z, g);
+	return ga;
+}
+
+rgb rgb_clamp(rgb a)
+{
+	rgb b;
+	b.x = a.x > 1.0f? 1.0f : a.x;
+	b.y = a.y > 1.0f? 1.0f : a.y;
+	b.z = a.z > 1.0f? 1.0f : a.z;
+	return b;
+}
+
 /*
 	RAYS.
 */
@@ -279,19 +297,18 @@ void tga_write(tga_data *data, FILE *f)
 	TRACING.
 */
 
-rgb blue_lambert(vec3 *p, vec3 *n, vec3 *i, shading_globals *sg)
+rgb red_lambert(vec3 *p, vec3 *n, vec3 *i, shading_globals *sg)
 {
 	float lambert = fmaxf(vec3_dot(vec3_norm(sg->light_pos), *n), 0);
 
 	lambert = (lambert + 0.5f) * 0.5f;
-	return vec3_scale(mkvec3(0.0, 0.0, 1.0f), lambert);
+	return vec3_scale(mkvec3(1.0, 0.0, 0.0f), lambert);
 }
 
 rgb mirror(vec3 *p, vec3 *n, vec3 *i, shading_globals *sg)
 {
 	float lambert = fmaxf(vec3_dot(vec3_norm(sg->light_pos), *n), 0);
-	lambert = (lambert + 0.85f) * 0.85f;
-
+	lambert = (lambert + 0.1f) + 0.1f;
 
 	if (sg->depth > 0)
 	{
@@ -304,7 +321,12 @@ rgb mirror(vec3 *p, vec3 *n, vec3 *i, shading_globals *sg)
 		rgb col = trace_ray(&r, sg, &hit);
 		sg->depth++;
 
-		return vec3_scale(col, lambert);
+
+		vec3 h = vec3_add( vec3_sub(sg->light_pos, *p), *i);
+		h = vec3_norm(h);
+		float blinn = powf(fmaxf(vec3_dot(h, *n), 0.0f), 10.0f);
+
+		return vec3_add( vec3_add(vec3_scale(mkvec3(0.8f, 0.8f, 0.5f), blinn), col), vec3_scale(mkvec3(0.3f, 0.3f, 0.5f), lambert));
 	}
 
 	return mkvec3(0.0, 0.0, 0.0f);
@@ -316,7 +338,7 @@ rgb mirror(vec3 *p, vec3 *n, vec3 *i, shading_globals *sg)
 object objects[] = {
 	{
 		/* Shader. */
-		blue_lambert,
+		red_lambert,
 		/* Sphere primitive */ 
 		{ 		
 			{0.0f, -.25f, 0.0f},
@@ -365,7 +387,7 @@ rgb trace_ray(ray *r, shading_globals *sg, char *hit)
 		}
 	}
 	*hit = 0;
-	return mkvec3(0.25f, 0, 0);
+	return mkvec3(0.000f, 0.537f, 0.973f);
 }
 
 int main(int argc, char *argv[])
@@ -425,6 +447,8 @@ int main(int argc, char *argv[])
 			}
 
 			col = vec3_scale(col, 1.0f / (supersample * supersample));
+			col = rgb_gamma(col, 1.0f / 2.2f); 
+			col = rgb_clamp(col);
 
 			/*printf("Shooting ray from %f %f %f.\n", r.origin.x, r.origin.y, r.origin.z);*/
 

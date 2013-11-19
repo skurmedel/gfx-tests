@@ -50,6 +50,8 @@ vec3 vec3_faceforward(vec3 const *n, vec3 const *i);
 typedef vec3 rgb;
 
 rgb rgb_mult(rgb a, rgb b);
+rgb rgb_gamma(rgb a, float gamma);
+rgb rgb_clamp(rgb a);
 
 /*
 	RAYS.
