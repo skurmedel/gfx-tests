@@ -12,18 +12,20 @@ quadratic_zeros find_quadratic_zeros(float p, float q)
 
 	quadratic_zeros s;
 	s.real_count = 0;
-	if (discriminant == 0.0f)
-		s.real_count = 1;
-	else if (discriminant > 0.0f)
+	if (discriminant > 0.000001f)
 		s.real_count = 2;
+	else if (discriminant >= 0.0f)
+		s.real_count = 1;
 
 	s.s1 = NAN;
 	s.s2 = NAN;	
 	if (s.real_count > 0)
 	{
-		s.s1 = mid + sqrt(discriminant);
+		float discr_sqrt = sqrt(discriminant);
+
+		s.s1 = mid + discr_sqrt;
 		if (s.real_count > 1)
-			s.s2 = mid - sqrt(discriminant);
+			s.s2 = mid - discr_sqrt;
 		else
 			s.s2 = s.s1;	
 	}	
@@ -90,6 +92,32 @@ vec3 vec3_norm(vec3 a)
 	return vec3_scale(a, fraction);
 }
 
+vec3 vec3_reflect(vec3 const *n, vec3 const *i)
+{
+	//return vec3_sub(vec3_scale(*n, 2.0 * vec3_dot(*i, *n)), *i);
+
+	return vec3_sub(vec3_scale(*n, 2.0f * (i->x * n->x + i->y * n->y + i->z * n->z)), *i);
+}
+
+vec3 vec3_faceforward(vec3 const *n, vec3 const *i)
+{
+	if (vec3_dot(*n, *i) < 0.000001f)
+	{
+		return *n;
+	}
+
+	return vec3_scale(*n, -1);
+}
+
+rgb rgb_mult(rgb a, rgb b)
+{
+	rgb v;
+	v.x = a.x * b.x;
+	v.y = a.y * b.y;
+	v.z = a.z * b.z;
+	return v;
+}
+
 /*
 	RAYS.
 */
@@ -121,26 +149,35 @@ int ray_intersects_sphere(ray r, sphere_primitive s, ray_sphere_test *rst)
 
 	quadratic_zeros zeros = find_quadratic_zeros(p, q);
 
-	rst->hits = zeros.real_count;
-	if (rst->hits > 0)
+	rst->hits = 0;
+	if (zeros.real_count > 0)
 	{
-		rst->p1 = ray_point(r, zeros.s1);
-		rst->n1 = vec3_norm(vec3_sub(rst->p1, s.center));
-		if (rst->hits > 1)
+		float t0 = zeros.s1;
+		float t1 = zeros.s2;
+
+		if (t0 > t1)
 		{
-			rst->p2 = ray_point(r, zeros.s2);
-			rst->n2 = vec3_norm(vec3_sub(rst->p2, s.center));
+			float tmp = t0;
+			t0 = t1;
+			t1 = tmp;
 		}
 
-		if (zeros.s1 <= zeros.s2)
+		if (t1 < 0.00001f)
 		{
-			rst->cp1 = &rst->p1;
-			rst->cn1 = &rst->n1;
+			return rst->hits;
+		}
+
+		if (t0 < 0.00001f)
+		{
+			rst->hits = 1;
+			rst->p1 = ray_point(r, t1);
+			rst->n1 = vec3_norm(vec3_sub(rst->p1, s.center));
 		}
 		else
 		{
-			rst->cp1 = &rst->p2;
-			rst->cn1 = &rst->n2;
+			rst->hits = 2;
+			rst->p1 = ray_point(r, t0);
+			rst->n1 = vec3_norm(vec3_sub(rst->p1, s.center));
 		}
 	}
 
@@ -238,6 +275,99 @@ void tga_write(tga_data *data, FILE *f)
 	}
 }
 
+/*
+	TRACING.
+*/
+
+rgb blue_lambert(vec3 *p, vec3 *n, vec3 *i, shading_globals *sg)
+{
+	float lambert = fmaxf(vec3_dot(vec3_norm(sg->light_pos), *n), 0);
+
+	lambert = (lambert + 0.5f) * 0.5f;
+	return vec3_scale(mkvec3(0.0, 0.0, 1.0f), lambert);
+}
+
+rgb mirror(vec3 *p, vec3 *n, vec3 *i, shading_globals *sg)
+{
+	float lambert = fmaxf(vec3_dot(vec3_norm(sg->light_pos), *n), 0);
+	lambert = (lambert + 0.85f) * 0.85f;
+
+
+	if (sg->depth > 0)
+	{
+		vec3 i_inv = vec3_scale(*i, -1.0f);
+		vec3 nff = vec3_faceforward(n, &i_inv);
+		vec3 refl = vec3_norm(vec3_reflect(n, &i_inv));
+		char hit = 0;
+		sg->depth--;
+		ray r = mkray(*p, refl);
+		rgb col = trace_ray(&r, sg, &hit);
+		sg->depth++;
+
+		return vec3_scale(col, lambert);
+	}
+
+	return mkvec3(0.0, 0.0, 0.0f);
+}
+
+/*
+	This is the scene description, really...
+*/
+object objects[] = {
+	{
+		/* Shader. */
+		blue_lambert,
+		/* Sphere primitive */ 
+		{ 		
+			{0.0f, -.25f, 0.0f},
+			0.35f
+		}
+	},
+	{
+		/* Shader. */
+		mirror,
+		/* Sphere primitive */ 
+		{ 		
+			{0, 1.0, -1.5f},
+			0.85f
+		}	
+	},
+	{
+		/* Shader. */
+		mirror,
+		/* Sphere primitive */ 
+		{ 		
+			{-1.0, -1.0, -1.5f},
+			0.85f
+		}	
+	},
+	{
+		/* Shader. */
+		mirror,
+		/* Sphere primitive */ 
+		{ 		
+			{1.0, -1.0, -1.5f},
+			0.85f
+		}	
+	}
+};
+
+rgb trace_ray(ray *r, shading_globals *sg, char *hit)
+{
+	for (int i = 0; i < ( sizeof(objects) / sizeof(object) ); ++i)
+	{
+		ray_sphere_test tst;
+		if (ray_intersects_sphere(*r, objects[i].s, &tst))
+		{
+			*hit = 1;
+
+			return objects[i].shader(&tst.p1, &tst.n1, &r->dir, sg);
+		}
+	}
+	*hit = 0;
+	return mkvec3(0.25f, 0, 0);
+}
+
 int main(int argc, char *argv[])
 {
 	printf("Hello my dear! You supplied %d arguments.\n", argc);
@@ -246,11 +376,9 @@ int main(int argc, char *argv[])
 	s.radius = 1.5f;
 	s.center = mkvec3(0, 0, 0);
 
-	vec3 light_pos = mkvec3(.707f, .707f, .707f);
-
 	vec3 camera_origin = mkvec3(0, 0, 5.0f);
 	float imgplane_w = 4.0;
-	int res = 128;
+	int res = 512;
 
 	vec3 topleft = vec3_add(mkvec3(-imgplane_w / 2.0f, imgplane_w / 2.0f, 0), camera_origin);
 	vec3 pshiftx = mkvec3((imgplane_w / (float)res), 0, 0);
@@ -265,45 +393,52 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
+	shading_globals sg = {0};
+	sg.light_pos =  mkvec3(.707f, .707f, .707f);
+	sg.depth = 9;
+
 	int ray_count = 0, ray_hits = 0;
 	for (int y = 0; y < res; ++y)
 	{
 		for (int x = 0; x < res; ++x)
 		{
+			int supersample = 2.0;
+			rgb col = {0, 0, 0};
 			vec3 ray_origin = vec3_add(vec3_add(topleft, vec3_scale(pshiftx, x)), vec3_scale(pshifty, y));
-			ray r = mkray(ray_origin, mkvec3(0.0f, 0.0f, -1.0f));
+			for (int j = 0; j < supersample; j++)
+			{
+				ray_origin = vec3_add(ray_origin, vec3_scale(pshifty, 1.0f / supersample));
+				for (int i = 0; i < supersample; i++)
+				{
+					ray_origin = vec3_add(ray_origin, vec3_scale(pshiftx, 1.0f / supersample));
+					ray r = mkray(ray_origin, mkvec3(0.0f, 0.0f, -1.0f));
+					sg.eye = ray_origin;
+
+					char hit = 0;
+					col = vec3_add(trace_ray(&r, &sg, &hit), col);
+
+					if (hit)
+					{
+						ray_hits++;
+					}
+				}
+			}
+
+			col = vec3_scale(col, 1.0f / (supersample * supersample));
 
 			/*printf("Shooting ray from %f %f %f.\n", r.origin.x, r.origin.y, r.origin.z);*/
 
-			ray_sphere_test tst;
-
 			int stride = x + (y * tga->height);
-			tga->data[stride * 3 + 0] = 0;
-			tga->data[stride * 3 + 1] = 0;
-			tga->data[stride * 3 + 2] = 0;
 
-			if (ray_intersects_sphere(r, s, &tst))
-			{
-				putc('.', stdout);
-				ray_hits++;
-
-				/*
-					Yeah... this is our shader... :)
-				*/
-				float lambert = fmaxf(vec3_dot(vec3_norm(light_pos), *tst.cn1), 0);
-
-				tga->data[stride * 3 + 0] = (char)(lambert * 255.9); /* set blue. */
-			}
-			else
-			{
-				tga->data[stride * 3 + 2] = (char)(0.2f * 255.9); /* set faint red. */	
-			}
+			tga->data[stride * 3 + 0] = (int)(col.z * 255.9);
+			tga->data[stride * 3 + 1] = (int)(col.y * 255.9);
+			tga->data[stride * 3 + 2] = (int)(col.x * 255.9);
 
 			ray_count++;
 		}
 	}
 
-	FILE *f = fopen("render.128x128x24b.tga", "wb+");
+	FILE *f = fopen("render.512x512x24b.tga", "wb+");
 	if (f == NULL)
 	{
 		puts("Couldn't open output file. I can't work with this. Quitting.");

@@ -44,8 +44,12 @@ float vec3_len(vec3 a);
 #define vec3_mag(x) vec3_len(x)
 vec3 vec3_scale(vec3 a, float s);
 vec3 vec3_norm(vec3 a);
+vec3 vec3_reflect(vec3 const *n, vec3 const *i);
+vec3 vec3_faceforward(vec3 const *n, vec3 const *i);
 
 typedef vec3 rgb;
+
+rgb rgb_mult(rgb a, rgb b);
 
 /*
 	RAYS.
@@ -81,24 +85,10 @@ typedef struct sphere_primitive_s
 
 typedef struct ray_sphere_test_t
 {
-	/* Points where the ray intersect the sphere,
-	   p1 is invalid if hits < 1, p2 is invalid if
-	   hits < 2. */
 	vec3 p1;
-	vec3 p2;
-	/* Sphere normals at p1 and p2. */
 	vec3 n1;
-	vec3 n2;
-	/* Closest points with regards to the origin,
-	   this just points to p1 and p2, but is sorted
-	   so that cp1 is always the closest intersection
-	   to the origin. */
-	vec3 *cp1;
-	/* Same as cp1 but the normal. */
-	vec3 *cn1;
-	
-	short hits;
 
+	short hits;
 } ray_sphere_test;
 
 /*
@@ -130,4 +120,28 @@ uint64_t tga_len(uint16_t w, uint16_t h, uint8_t bitdepth);
 tga_data *tga_create(uint32_t w, uint32_t h, uint8_t bitdepth);
 void tga_free(tga_data *tga);
 void tga_write(tga_data *data, FILE *f);
+
+/*
+	SHADERS.
+*/
+typedef struct shading_globals_t
+{
+	/*
+		How many recursions or bounces we've done.
+	*/
+	int depth;
+	vec3 light_pos;
+	vec3 eye;
+} shading_globals;
+
+typedef rgb (*shader_f)(vec3 *p, vec3 *n, vec3 *i, shading_globals *sg);
+
+typedef struct object_t
+{
+	shader_f shader;
+	sphere_primitive s;
+} object;
+
+rgb trace_ray(ray *r, shading_globals *sg, char *hit);
+
 #endif
