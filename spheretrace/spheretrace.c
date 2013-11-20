@@ -297,11 +297,22 @@ void tga_write(tga_data *data, FILE *f)
 	TRACING.
 */
 
+float schlick(float r, float IdotH)
+{
+	return r + ((1.0f - r) * powf((1.0f - IdotH), 5.0f));
+}
+
 rgb red_lambert(vec3 *p, vec3 *n, vec3 *i, shading_globals *sg)
 {
 	float lambert = fmaxf(vec3_dot(vec3_norm(sg->light_pos), *n), 0);
 
 	lambert = (lambert + 0.5f) * 0.5f;
+
+	ray shadowray = mkray(*p, vec3_norm( vec3_sub(sg->light_pos, *p) ));
+	char shadowed = trace_shadow_ray(&shadowray, sg);
+	if (shadowed)
+		lambert *= 0.5f;
+
 	return vec3_scale(mkvec3(1.0, 0.0, 0.0f), lambert);
 }
 
@@ -309,6 +320,12 @@ rgb mirror(vec3 *p, vec3 *n, vec3 *i, shading_globals *sg)
 {
 	float lambert = fmaxf(vec3_dot(vec3_norm(sg->light_pos), *n), 0);
 	lambert = (lambert + 0.1f) + 0.1f;
+
+	ray shadowray = mkray(*p, vec3_norm( vec3_sub(sg->light_pos, *p) ));
+	char shadowed = trace_shadow_ray(&shadowray, sg);
+	if (shadowed)
+		lambert *= 0.5f;
+
 
 	if (sg->depth > 0)
 	{
@@ -321,12 +338,16 @@ rgb mirror(vec3 *p, vec3 *n, vec3 *i, shading_globals *sg)
 		rgb col = trace_ray(&r, sg, &hit);
 		sg->depth++;
 
-
-		vec3 h = vec3_add( vec3_sub(sg->light_pos, *p), *i);
+		vec3 light_dir = vec3_sub(sg->light_pos, *p);
+		vec3 h = vec3_add( light_dir, *i);
 		h = vec3_norm(h);
-		float blinn = powf(fmaxf(vec3_dot(h, *n), 0.0f), 10.0f);
+		float blinn = powf(fmaxf(vec3_dot(h, *n), 0.0f), 15.0f);
+		blinn *= schlick(0.3f, vec3_dot(h, vec3_norm(light_dir)));
+		col = vec3_scale(col, schlick(0.025f, vec3_dot(i_inv, *n)));
+		if (shadowed)
+			blinn = 0.0f;
 
-		return vec3_add( vec3_add(vec3_scale(mkvec3(0.8f, 0.8f, 0.5f), blinn), col), vec3_scale(mkvec3(0.3f, 0.3f, 0.5f), lambert));
+		return vec3_add( vec3_add(vec3_scale(mkvec3(0.9f, 0.9f, 0.9f), blinn), col), vec3_scale(mkvec3(0.1, 0.1f, 0.3f), lambert));
 	}
 
 	return mkvec3(0.0, 0.0, 0.0f);
@@ -374,8 +395,18 @@ object objects[] = {
 	}
 };
 
+/*
+	Horrible globals that do bookkeeping.
+*/
+unsigned long ray_count;
+unsigned long shading_rays;
+unsigned long shadow_rays;
+
 rgb trace_ray(ray *r, shading_globals *sg, char *hit)
 {
+	ray_count++;
+	shading_rays++;
+
 	for (int i = 0; i < ( sizeof(objects) / sizeof(object) ); ++i)
 	{
 		ray_sphere_test tst;
@@ -388,6 +419,22 @@ rgb trace_ray(ray *r, shading_globals *sg, char *hit)
 	}
 	*hit = 0;
 	return mkvec3(0.000f, 0.537f, 0.973f);
+}
+
+char trace_shadow_ray(ray *r, shading_globals *sg)
+{
+	ray_count++;
+	shadow_rays++;
+
+	for (int i = 0; i < ( sizeof(objects) / sizeof(object) ); ++i)
+	{
+		ray_sphere_test tst;
+		if (ray_intersects_sphere(*r, objects[i].s, &tst))
+		{
+			return 1;
+		}
+	}
+	return 0;
 }
 
 int main(int argc, char *argv[])
@@ -419,7 +466,6 @@ int main(int argc, char *argv[])
 	sg.light_pos =  mkvec3(.707f, .707f, .707f);
 	sg.depth = 9;
 
-	int ray_count = 0, ray_hits = 0;
 	for (int y = 0; y < res; ++y)
 	{
 		for (int x = 0; x < res; ++x)
@@ -438,11 +484,6 @@ int main(int argc, char *argv[])
 
 					char hit = 0;
 					col = vec3_add(trace_ray(&r, &sg, &hit), col);
-
-					if (hit)
-					{
-						ray_hits++;
-					}
 				}
 			}
 
@@ -457,8 +498,6 @@ int main(int argc, char *argv[])
 			tga->data[stride * 3 + 0] = (int)(col.z * 255.9);
 			tga->data[stride * 3 + 1] = (int)(col.y * 255.9);
 			tga->data[stride * 3 + 2] = (int)(col.x * 255.9);
-
-			ray_count++;
 		}
 	}
 
@@ -474,7 +513,7 @@ int main(int argc, char *argv[])
 
 	tga_free(tga);
 
-	printf("\n%07d rays shot, %07d hits.\n", ray_count, ray_hits);
+	printf("%08d rays total. %08d shading rays. %08d shadow rays.\n", ray_count, shading_rays, shadow_rays);
 
 	return 0;
 }

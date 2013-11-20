@@ -145,5 +145,6 @@ typedef struct object_t
 } object;
 
 rgb trace_ray(ray *r, shading_globals *sg, char *hit);
+char trace_shadow_ray(ray *r, shading_globals *sg);
 
 #endif
