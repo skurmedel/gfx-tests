@@ -30,6 +30,7 @@
 #include "stdio.h"
 #include "stdlib.h"
 #include "math.h"
+#include "complex.h"
 
 #define RERROR(reason, code) \
 	{ \
@@ -146,11 +147,37 @@ void tga_write(tga_data *data, FILE *f)
 		putc(data->data[i], f);
 	}
 }
-/*
-int draw_pixel(double complex z, char const *bgr_pixel_start)
-{
 
-}*/
+int draw_pixel(double complex c, int x, int y, tga_data *tga)
+{	
+	int const iterations = 500;
+
+	/* For debugging.
+	printf("x: %d, y: %d\n", x, y);
+	printf("%f + i%f\n", creal(c), cimag(c));
+	*/
+
+	double complex z = 0.0 + 0.0 * I;
+	int i = 0;
+	for (; i < iterations; i++)
+	{	
+		if (cabs(z) > 2.0)
+			break;
+		z = (z * z) + c;
+	}
+
+	int in_set = cabs(z) < 2.0;
+
+	int r = pow(1.0 - (i / (double) iterations), 36) * 220.9;
+
+	int stride = (x + (y * tga->width)) * 3;
+	/* TGA is stored BGR. */
+	tga->data[stride + 2] = 255 - r;
+	tga->data[stride + 1] = 255 - r;
+	tga->data[stride + 0] = r;
+
+	return 0;
+}
 
 int draw_picture(unsigned int width, unsigned int height, char const *filename)
 {
@@ -174,22 +201,19 @@ int draw_picture(unsigned int width, unsigned int height, char const *filename)
 	*/
 	double unit_length = width < height? width : height;
 
-	for (int y = 0; y < unit_length; ++y)
-	{
-		for (int x = 0; x < unit_length; ++x)
-		{
-			double xd = x - (unit_length / 2.0);
-			double yd = y - (unit_length / 2.0);
-			double radius = unit_length * 0.5;
-			double distance_origo_sqr = (xd * xd) + (yd * yd) - (radius * radius);
+	double world_scale = 2.5;
+	double x_offset = 0.5;
 
-			int stride = (x + (y * tga->height)) * 3;
-			/* TGA is stored BGR. */
-			tga->data[stride + 2] = 
-				distance_origo_sqr < 0? 0xFF : 0x00;
-			tga->data[stride + 1] = 0x00;
-			tga->data[stride + 0] = 0x00;
-			
+	for (unsigned int y = 0; y < height; ++y)
+	{
+		for (unsigned int x = 0; x < width; ++x)
+		{
+			double xd = x; xd = ((xd - (width * 0.5)) / unit_length) * world_scale;
+			double yd = y; yd = ((yd - (height * 0.5)) / unit_length) * world_scale;
+
+			double complex c = (xd - x_offset) + (yd * I);
+
+			draw_pixel(c, x, y, tga);
 		}
 	}
 
@@ -203,5 +227,8 @@ int draw_picture(unsigned int width, unsigned int height, char const *filename)
 
 int main(int argc, char *argv[])
 {
-	return draw_picture(128, 128, "test.tga");
+	int w = 1920;
+	int h = 1080;
+	int mult = 2;
+	return draw_picture(w*mult, h*mult, "mandelbrot.tga");
 }
