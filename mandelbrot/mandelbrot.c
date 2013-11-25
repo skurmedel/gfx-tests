@@ -168,13 +168,13 @@ int draw_pixel(double complex c, int x, int y, tga_data *tga)
 
 	int in_set = cabs(z) < 2.0;
 
-	int r = pow(1.0 - (i / (double) iterations), 36) * 220.9;
+	int r = pow(1.0 - (i / (double) iterations), 15) * 255.9;
 
 	int stride = (x + (y * tga->width)) * 3;
 	/* TGA is stored BGR. */
 	tga->data[stride + 2] = 255 - r;
 	tga->data[stride + 1] = 255 - r;
-	tga->data[stride + 0] = r;
+	tga->data[stride + 0] = 255 - r;
 
 	return 0;
 }
@@ -229,6 +229,6 @@ int main(int argc, char *argv[])
 {
 	int w = 1920;
 	int h = 1080;
-	int mult = 2;
+	int mult = 1;
 	return draw_picture(w*mult, h*mult, "mandelbrot.tga");
 }
