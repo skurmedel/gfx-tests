@@ -1,6 +1,24 @@
 Sobel
 -----
 
-A small Sobel filter implementation. Mainly for learning purposes.
+A small Sobel filter implementation. Mainly for learning purposes. 
+
+It also serves as a development tester for my TGA-lib.
 
 The code is C99 compliant.
+
+Todo
+----
+
+	- Sobel filter
+	- Nicer TGA-routines
+
+Features
+--------
+
+	None
+
+Usage examples
+--------------
+
+	cat blabla.tga | sobel > out.tga
