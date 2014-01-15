@@ -1,0 +1,6 @@
+Sobel
+-----
+
+A small Sobel filter implementation. Mainly for learning purposes.
+
+The code is C99 compliant.
