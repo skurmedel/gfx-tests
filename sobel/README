@@ -22,3 +22,8 @@ Usage examples
 --------------
 
 	cat blabla.tga | sobel > out.tga
+
+License
+-------
+
+MIT all the way.
