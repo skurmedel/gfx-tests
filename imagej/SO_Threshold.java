@@ -4,7 +4,10 @@ import ij.gui.*;
 import java.awt.*;
 import ij.plugin.filter.*;
 
-public class Simon_Inverter implements PlugInFilter {
+public class SO_Threshold implements PlugInFilter {
+	// The threshold value, anything less than this will be black.
+	final int THRESHOLD = 50;
+
 	ImagePlus imp;
 
 	public int setup(String arg, ImagePlus imp) {
@@ -20,8 +23,7 @@ public class Simon_Inverter implements PlugInFilter {
 		{
 			for (int u = 0; u < w; u++)
 			{
-				int p = ip.get(u, v);
-				p = 255 - p;
+				int p = ip.get(u, v) < THRESHOLD? 0 : 255;
 				ip.set(u, v, p);
 			}
 		}
