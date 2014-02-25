@@ -1,0 +1,3 @@
+This is a collection of "filters". I prefer to call them processors, a filter is something special in image processing: An operator which requires info about the neighbouring pixels. Only a handful things here will strictly be "filters".
+
+Most of the stuff is pretty dumb and useless, but I have a bucket list of stuff I want to implement and it contains high and low.
