@@ -42,6 +42,7 @@ public class SO_HistogramOps implements PlugInFilter {
 		int[] histo = computeHistogram(ip, bins);
 
 		int maxPixels = ip.getWidth() * ip.getHeight();
+		
 		int maxVal = max(histo);
 
 		ImageProcessor histoip = new ByteProcessor(bins, HI_HEIGHT);
@@ -86,6 +87,15 @@ public class SO_HistogramOps implements PlugInFilter {
 			}
 		}
 
+		return histo;
+	}
+
+	private int[] makeCumulative(int[] histo) {
+		int n = 0; 
+		for (int i = 0; i < histo.length; i++) {
+			n += histo[i];
+			histo[i] = n;
+		}
 		return histo;
 	}
 
