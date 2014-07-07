@@ -39,8 +39,8 @@ public class SO_ZBlur implements ExtendedPlugInFilter, DialogListener {
 	public int showDialog(ImagePlus img, String cmd, PlugInFilterRunner pfr) {
 		
 		GenericDialog gd = new GenericDialog("ZBlur");
-		gd.addSlider("Focal point: ", -10000.0, 10000.0, 0.0);
-		gd.addSlider("Blur size: ", 0.0, 100.0, 2.0);
+		gd.addSlider("Focal point: ", -0.5, 0.5, 0.0);
+		gd.addSlider("Blur size: ", 0.0, 3.0, 1.25);
 
 		Button fileSelection = new Button("Select Z-pass...");
 		fileSelection.addActionListener(new ActionListener() {

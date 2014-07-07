@@ -1,0 +1,72 @@
+import ij.*;
+import ij.process.*;
+import ij.gui.*;
+import java.awt.*;
+import ij.plugin.filter.*;
+import java.lang.*;
+
+import java.util.Arrays;
+import java.util.Collections;
+
+/*
+	A Z-blur linear filter. Z-blur is a common thing in 
+	VFX and games, where you simulate Depth of Field (bokeh)
+	through a selective blur. Areas determined to be in 
+	focus are less blurred than areas not in focus.
+	The amount depends on their scene depth.
+
+	The scene depth is acquired through a separate image,
+	of the same dimensions, which is grayscale and encodes
+	the depth for each RGB value.
+*/
+
+public class SO_ZBlur implements ExtendedPlugInFilter, DialogListener {
+	private static final int FLAGS = DOES_8G | DOES_RGB | DIALOG | PREVIEW;
+	ImagePlus imp;
+
+	double focalPoint = 0.0;
+	double blurSize = 0.0;
+
+	public void setNPasses(int nPasses) {
+
+	}
+
+	public int showDialog(ImagePlus img, String cmd, PlugInFilterRunner pfr) {
+		
+		GenericDialog gd = new GenericDialog("ZBlur");
+		gd.addSlider("Focal point: ", Double.MIN_VALUE, Double.MAX_VALUE, 0.0);
+		gd.addSlider("Blur size: ", 0.0, 10.0, 2.0);
+
+		java.awt.Button fileSelection = new java.awt.Button("Select floating point Z-pass...");
+		gd.add(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+            	ImportDialog dialog = new ImportDialog();
+            	dialog.getFileInfo();
+            }
+        });
+
+		gd.addPreviewCheckbox(pfr);
+		gd.showDialog();
+		if (gd.wasCanceled()) 
+			return NO_CHANGES;
+
+		return FLAGS;
+	}
+
+	public int setup(String arg, ImagePlus imp) {
+		this.imp = imp;
+		return FLAGS;
+	}
+
+	public void run(ImageProcessor ip) {
+		int totalPixels = ip.getWidth() * ip.getHeight();
+
+	}
+
+	public boolean dialogItemChanged(GenericDialog dg, java.awt.AWTEvent e)	{
+
+
+		return true;
+	}
+}

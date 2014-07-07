@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Deferred Rendering</title>
+		<script type="text/javascript" src="lib/GLOW.js"></script>
+		<script>
+		function init()
+		{
+			var context = new GLOW.Context();
+
+			context.setupClear( { red: 1, green: 1, blue: 1 } );
+			var elem = document.getElementById("canvas-container");
+
+			elem.appendChild(context.domElement);
+
+			var shaderInfo = 
+			{
+				vertexShader: 
+				["uniform mat4 transform;",
+				 "uniform mat4 cameraInverse;",
+				 "uniform mat4 cameraProjection;",
+
+				 "attribute vec3 vertices;",
+				 "attribute vec2 uvs;",
+				 "varying vec2 uv;",
+				 "void main(void) {",
+				 "uv = uvs;",
+				 	"gl_Position = cameraProjection * cameraInverse * transform * vec4(vertices, 1.0);",
+				 "}"].join("\n"),
+				fragmentShader: 
+				["#ifdef GL_ES",
+				    "precision highp float;",
+				 "#endif",
+				 "varying vec2 uv;",
+				 "void main(void) {",
+				 	"gl_FragColor = vec4(1.0, 1.0, 0.0, 1.0);",
+				 "}"].join("\n"),
+				data: {
+					transform: new GLOW.Matrix4(),
+					cameraInverse: GLOW.defaultCamera.inverse,
+					cameraProjection: GLOW.defaultCamera.projection,
+					vertices: GLOW.Geometry.Cube.vertices(500),
+					uvs: GLOW.Geometry.Cube.uvs()
+				},
+				indices: GLOW.Geometry.Cube.indices()
+			};
+
+			var obj1 = new GLOW.Shader(shaderInfo);
+			obj1.transform.setPosition(0, 0, 0);
+			obj1.transform.multiplyScalar(1);
+			GLOW.defaultCamera.localMatrix.setPosition(0, 0, -5000);
+			GLOW.defaultCamera.update();
+
+			setInterval(function () { render(context, obj1); }, 1000/60);
+		}
+
+		function render(glowContext, obj1)
+		{
+			glowContext.cache.clear();
+			glowContext.clear();
+			obj1.transform.addRotation(0.0, 0.01, 0.001);
+			obj1.draw();
+		}
+
+		window.onload = init;		
+		</script>
+	</head>
+
+	<body>
+		<div id="canvas-container"></div>
+	</body>
+</html>
