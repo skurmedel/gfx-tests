@@ -54,7 +54,7 @@ void drawSpectrum(PGraphics g)
   fft.forward(audioInput.left);
   
   float spectrumWidth = 80.0f;
-  float step = spectrumWidth / fft.avgSize();
+  float step = spectrumWidth / (fft.avgSize() - 1);
   float spectrumHeight = 40.0f;
   
   float baseX = spectrumWidth * -0.5;
@@ -197,7 +197,7 @@ void draw()
   resetShader();
   fill(255,255,255);
   textSize(32);
-  text("FPS: " + Float.toString(frameRate), 30, 30);
+  //text("FPS: " + Float.toString(frameRate), 30, 30);
 }
 
 
