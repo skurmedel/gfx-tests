@@ -214,6 +214,7 @@ void draw()
   resetShader();
   fill(255,255,255);
   textSize(32);
+<<<<<<< HEAD
   text("FPS: " + Float.toString(frameRate), 30, 30);
   
   if (maxAmplitudeReset > MAX_AMPLITUDE_RESET)
@@ -221,6 +222,9 @@ void draw()
     maxAmplitude -= 0.05f;
     maxAmplitudeReset = 0; 
   }
+=======
+  //text("FPS: " + Float.toString(frameRate), 30, 30);
+>>>>>>> 479b969583f8a2d28de36758e9bb8bf41884c0fc
 }
 
 
