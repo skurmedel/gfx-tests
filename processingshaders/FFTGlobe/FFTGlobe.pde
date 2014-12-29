@@ -9,6 +9,8 @@ final int INPUT_BUFSIZE = 1024;
 float FOV = PI / 4;
 float CAMERA_Z = (float(W_HEIGHT) * 0.5) / tan(FOV * 0.5);
 
+int MAX_AMPLITUDE_RESET = 1024; 
+
 /* -------------------------------------------
   GLOBALS
 ------------------------------------------- */
@@ -22,7 +24,10 @@ PGraphics buffer3d;
 
 PFont font;
 
-float beatDecay;  
+float beatDecay;
+
+float maxAmplitude = -1.0;
+int maxAmplitudeReset = 0;
 
 /* -------------------------------------------
   MAIN SCENE RENDER
@@ -37,6 +42,12 @@ void setupScene()
   sphereShader.set("beat", 0.0);
 }
 
+float log10 = log(10.0f);
+float powerToDb(float p)
+{
+  return 10.0f * (log(p) / log10);
+}
+
 String prettyFormatHz(float hz)
 {
   if (hz > 999.0f)
@@ -46,15 +57,14 @@ String prettyFormatHz(float hz)
   return String.format("%.1f Hz", hz);
 }
 
-float maxAmplitude = -1.0;
 void drawSpectrum(PGraphics g)
 {
-  fft.logAverages(500, 8);
+  fft.logAverages(80, 6);
   
   fft.forward(audioInput.left);
   
   float spectrumWidth = 80.0f;
-  float step = spectrumWidth / fft.avgSize();
+  float step = spectrumWidth / (fft.avgSize() - 1);
   float spectrumHeight = 40.0f;
   
   float baseX = spectrumWidth * -0.5;
@@ -67,19 +77,22 @@ void drawSpectrum(PGraphics g)
   for (int i = 0; i < fft.avgSize(); i++)
   {
     float a = fft.getAvg(i);
-    if (a > maxAmplitude)
+    if (a >= maxAmplitude)
+    {
       maxAmplitude = a;
+      maxAmplitudeReset = 0;
+    }
+    else
+      maxAmplitudeReset++;
   }
   
   for (int i = 0; i < fft.avgSize(); i++)
   {
-    amplitudes[i] = fft.getAvg(i) / maxAmplitude;
-    if (amplitudes[i] > 1.0f)
-      println("Omg, ", amplitudes[i]);
+    amplitudes[i] = fft.getAvg(i);
     x[i] = baseX + i * step;
     y[i] = baseY 
          - spectrumHeight 
-         * log(1.0 + amplitudes[i] * 1.71828182f);
+         * (powerToDb(1.0 + amplitudes[i]) / powerToDb(1.0 + maxAmplitude));
   }
   
   g.noFill();
@@ -96,28 +109,32 @@ void drawSpectrum(PGraphics g)
   g.endShape();
   
   g.noStroke();
-  g.fill(255, 255, 255,  80);
+  g.fill(255, 255, 255,  100);
   g.textFont(font);
   g.textSize(0.8);
   g.textAlign(CENTER);
   for (int i = 1; i < fft.avgSize() - 1; i+=3)
   {
     g.ellipse(x[i], y[i], 0.5, 0.5);
-    g.text(String.format("%.1f", amplitudes[i]), x[i], y[i] - 2);
-    g.text(prettyFormatHz(fft.indexToFreq(i)), x[i], baseY - spectrumHeight);
+    g.text(String.format("%.1f", powerToDb(amplitudes[i])), x[i], y[i] - 2);
+    g.text(prettyFormatHz(fft.getAverageCenterFrequency(i)), x[i], baseY - spectrumHeight);
   }
+  g.textAlign(RIGHT);
+  g.textSize(0.8);
+  g.text("AUTO " + String.format("%.1f", powerToDb(maxAmplitude)), -baseX, baseY - spectrumHeight + 1.6f);
+  g.text(String.format("%.1f", powerToDb(maxAmplitude * 0.5)), -baseX, baseY - (spectrumHeight * 0.5f) + 1.6f);
   
   g.noFill();
   g.stroke(255, 255, 255);
   g.beginShape();
-    g.curveVertex(x[0] - 0.1, y[0]);
+    g.curveVertex(x[0] - step, y[0]);
     g.curveVertex(x[0], y[0]);
     for (int i = 1; i < fft.avgSize() - 1; i++)
     {
       g.curveVertex(x[i], y[i]);
     }
-    g.vertex(x[fft.avgSize() - 1], y[fft.avgSize() - 1]);
-    g.vertex(x[fft.avgSize() - 1] + 0.1, y[fft.avgSize() - 1]);
+    g.curveVertex(x[fft.avgSize() - 1], y[fft.avgSize() - 1]);
+    g.curveVertex(x[fft.avgSize() - 1] + step, y[fft.avgSize() - 1]);
   g.endShape();
 }
 
@@ -198,6 +215,12 @@ void draw()
   fill(255,255,255);
   textSize(32);
   text("FPS: " + Float.toString(frameRate), 30, 30);
+  
+  if (maxAmplitudeReset > MAX_AMPLITUDE_RESET)
+  {
+    maxAmplitude -= 0.05f;
+    maxAmplitudeReset = 0; 
+  }
 }
 
 
